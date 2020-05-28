@@ -28,14 +28,14 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/paboulos/http-async-svc.git"
+        "url": "git+https://github.com/paboulos/http-crud.git"
     },
     "author": "Paul Boulos",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/paboulos/http-async-svc/issues"
+        "url": "https://github.com/paboulos/http-crud/issues"
     },
-    "homepage": "https://github.com/paboulos/http-async-svc#readme",
+    "homepage": "https://github.com/paboulos/http-crud#readme",
     "devDependencies": {
         "@types/ramda": "^0.27.4",
         "@typescript-eslint/eslint-plugin": "^2.28.0",
