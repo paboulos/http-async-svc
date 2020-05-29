@@ -1,5 +1,7 @@
 # http-crud
 
+## Motivation
+
 **A Node module that is used to easily make asynchronous CRUD network requests with TypesScript or JavaScript.\
 The APIs in this module require familiarity with Promises, fetch and HTTP methods.**
 
@@ -8,6 +10,7 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
 
 ## APIs
 
+```sh
 1. read
 2. curriedRead
 3. create
@@ -16,24 +19,66 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
 6. curriedUpdate
 7. del
 8. curriedDel
+```
 
----
+## Installation
+
+Current stable release (`1.x`)
+
+```sh
+$ npm install http-crud --save
+```
 
 ## Usage Examples
 
 **TypeScript**
+
+```js
+import { HttpResponse, read } from 'http-crud';
+
+export const getLaunchesFull = async (): Promise<HttpResponse<ILaunch>> => {
+    try {
+        const httpResp = (await read) < ILaunch > (undefined, 'https://api.spacexdata.com/v3/launches/latest');
+        return httpResp;
+    } catch (error) {
+        throw error;
+    }
+};
+
+// launch Declaration
+export interface ILaunch {
+    flight_number: number;
+    launch_window: number;
+    mission_name: string;
+    launch_success: boolean;
+}
+```
+
+-   From the github repo
 
 1. Install runner: npm i -g ts-node
 2. Run: ts-node .\demo.ts
 
 **JavaScript**
 
--   refer to unit tests
+```js
+const crud = require('http-crud');
+const { read } = crud;
+const { log } = console;
+read(undefined, 'https://jsonplaceholder.typicode.com/todos').then((resp) => {
+    try {
+        log(resp.status);
+    } catch (e) {}
+});
+```
+
+-   more in the repo unit tests
 
 ## RFC Guidelines for CRUD HTTP Methods
 
 ### **Create**
 
+```sh
 -   `PUT` with a new URI
 
     -   If a new resource is created, the origin server MUST inform the user agent via the 201 (Created).
@@ -61,9 +106,11 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
         the status of the request and refers to the new resource in a Location header.
     -   Responses to this method are not cacheable, unless the response includes appropriate Cache-Control or Expires header fields.\
         A 303 status response can be used to direct the user agent to retrieve a cacheable resource.
+```
 
 ### **Read**
 
+```sh
 -   `GET` with an existing URI
     -   The semantics of the GET method change to a `conditional GET` if the request message includes an If-Modified-Since,\
          If-Unmodified-Since, If-Match, If-None-Match, or If-Range header field.
@@ -92,9 +139,11 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
     -   The presence of a `Range` header in a `conditional GET` modifies what is returned if the GET is otherwise successful and the\
         condition is true. It does not affect the 304 response returned if the condition is false.
     -   The response to a GET request is cacheable if and only if it meets the requirements for HTTP caching
+```
 
 ### **Update**
 
+```sh
 -   `PUT` with an existing URI
     -   If an existing resource is modified, either the 200 (OK) or 204 (No Content) response codes SHOULD be expected to\
         indicate successful completion of the request.
@@ -103,19 +152,22 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
     -   Some headers can be applied to this method to make it conditional (e.g. If-Match). (refer to Read description)
     -   If the precondition of a request header fails and the response is 412 the update MUST NOT be applied to the resource.\
         This allows the user to indicate that they only wish the request to be successful if the entity is not stale.
+```
 
 ### **Delete**
 
+```sh
 -   `DELETE` with an existing URI
     -   A successful response SHOULD be 200 (OK) if the response includes an entity describing the status, 202 (Accepted)\
         if the action has not yet been enacted, or 204 (No Content) if the action has been enacted but the response does not\
         include an entity. If the request passes through a cache and the Request-URI identifies one or more currently cached\
         entities, those entries SHOULD be treated as stale. Responses to this method are not cacheable.
 
----
+```
 
 ## Common HTTP Status/Response Codes
 
+```sh
 **Success 2xx, 3xx**
 
 -   `OK` 200
@@ -127,9 +179,11 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
 -   `Moved Permanently` 301
 -   `See Other` 303
 -   `Not Modified` 304
+```
 
 **Error 4xx, 5xx**
 
+```sh
 -   `Bad Request` 400
 -   `Unauthorized` 401
 -   `Forbidden` 403
@@ -142,10 +196,11 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
 -   `Internal Error` 500
 -   `Not Implemented` 501
 
----
+```
 
 ## Entities
 
+```sh
 -   An entity is the cargo of the HTTP message.
 -   The message entity contains the entity headers and the entity body
 -   All HTTP entities are represented in HTTP messages as sequences of bytes and the byte range is meaningful for\
@@ -163,6 +218,7 @@ The APIs in this module require familiarity with Promises, fetch and HTTP method
 -   The content headers provide specific information about the content of the entity, revealing its type, size, and other\
     information useful for processing it.
 -   The entity caching headers provide information about the entity being cached
+```
 
 ## Entity Headers
 

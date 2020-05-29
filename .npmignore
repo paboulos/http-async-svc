@@ -1,0 +1,7 @@
+lib/
+test/
+.*
+.*.js
+.vscode/
+tsconfig.json
+demo.ts
