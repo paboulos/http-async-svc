@@ -1,44 +1,47 @@
 import fetch, { Request, RequestInfo, HeadersInit, RequestInit, Response } from 'node-fetch';
 
 /**
- * Configurable Generic Async HTTP Request using fetch. Returns partial Response containing only a JSON body
- * @export
- * @template T
- * @param {RequestInfo} request
- * @param {HttpRequest} [api=fetch]
- * @returns {Promise<T>}
- */
-export async function httpBody<T>(request: RequestInfo, api: HttpRequest = fetch): Promise<T> {
-    const response = await api(request);
-    const body = await response.json();
-    return body;
-}
-
-/**
- * Configurable Generic Async HTTP Request API using fetch. Response containing headers and body if applicable.
- * Entity body is conditional on presence of proper response status code and content-type header.
+ * Configurable Generic Async HTTP Request API using fetch. Response containing headers and body if
+ * applicable. Response entity body is conditional on presence of proper response status code and
+ * content-type header.
  * @template T
  * @param {HttpRequest} api
- * @param {RequestInfo} request
+ * @param {Request} request
  * @returns {Promise<HttpResponse<T>>}
  */
-async function httpFull<T>(request: RequestInfo, api: HttpRequest = fetch): Promise<HttpResponse<T>> {
+export async function http<T>(api: HttpRequest = fetch, request: Request): Promise<HttpResponse<T>> {
     const resp: HttpResponse<T> = await api(request);
     if (resp.ok) {
-        try {
-            const contentType = resp.headers.get('content-type') as string;
-            if (resp.status !== 204 && contentType) resp.parsedBody = await resp.json();
-        } catch (error) {
-            throw error;
+        if (request.method.toLowerCase() !== 'head') {
+            try {
+                const contentType = resp.headers.get('content-type') as string;
+                if (resp.status !== 204 && contentType) resp.parsedBody = await resp.json();
+            } catch (error) {
+                throw error;
+            }
         }
         return resp;
     }
     throw new Error(resp.statusText);
 }
+/**
+ * Curried HTTP is generic configurable Async HTTP request. Default set for fetch api. Response entity
+ * body is conditional on presence of proper response status code and content-type header.
+ * @export
+ * @template T
+ * @param {HttpRequest} api
+ * @returns {function} Curries async HTTP request.
+ * (request:Request) => (api:HttpRequest) => Promise<HttpResponse<T>>
+ */
+export function curriedHttp<T>(api: HttpRequest = fetch) {
+    return (request: Request): Promise<HttpResponse<T>> => {
+        return http<T>(api, request);
+    };
+}
 
 /**
- * Configurable Async HTTP request using Get method. Default set for api and headers
- *
+ * Configurable Async HTTP request using Get method. Default set for api and headers. Response entity body is
+ * conditional on presence of proper response status code and content-type header.
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
@@ -56,11 +59,12 @@ export async function read<T>(
     },
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: 'get', headers: headers };
-    return await httpFull<T>(new Request(path, args), api);
+    return await http<T>(api, new Request(path, args));
 }
 
 /**
- * Curried Read is Configurable Async HTTP request using Get method. Default set for api and headers
+ * Curried Read is Configurable Async HTTP request using Get method. Default set for api and headers.
+ * A response entity body is conditional on presence of proper response status code and content-type header.
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
@@ -73,12 +77,46 @@ export function curriedRead<T>(api: HttpRequest = fetch) {
         },
     ): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: 'get', headers: headers };
-        return httpFull<T>(new Request(path, args), api);
+        return http<T>(api, new Request(path, args));
     };
 }
 
 /**
- * Configurable HTTP Put with injectable Request API. Default set for api and headers.
+ * Configurable Async HTTP request using HEAD method. Default set for api and headers.
+ * @export
+ * @template T
+ * @param {HttpRequest} [api=fetch]
+ * @param {string} path
+ * @param {HeadersInit} [headers={
+ *         'Content-Type': 'application/json',
+ *     }]
+ * @returns {Promise<HttpResponse<T>>}
+ */
+export async function head<T>(
+    api: HttpRequest = fetch,
+    path: string,
+    headers: HeadersInit = {
+        'Content-Type': 'application/json',
+    },
+): Promise<HttpResponse<T>> {
+    const args: RequestInit = { method: 'head', headers: headers };
+    return await http<T>(api, new Request(path, args));
+}
+
+export function curriedHead<T>(api: HttpRequest = fetch) {
+    return (path: string) => (
+        headers: HeadersInit = {
+            'Content-Type': 'application/json',
+        },
+    ): Promise<HttpResponse<T>> => {
+        const args: RequestInit = { method: 'head', headers: headers };
+        return http<T>(api, new Request(path, args));
+    };
+}
+/**
+ * Configurable HTTP request using Put with injectable Request API. Default set for api and headers.
+ * A response Entity body is conditional on presence of proper response status code and content-type
+ * header.
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
@@ -98,7 +136,7 @@ export async function update<T>(
     body: object | string | number,
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: 'put', headers: headers, body: JSON.stringify(body) };
-    return await httpFull<T>(new Request(path, args), api);
+    return await http<T>(api, new Request(path, args));
 }
 
 /**
@@ -106,8 +144,8 @@ export async function update<T>(
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
- * @returns {function} Curries Async update. 
-   (path:string) => (headers:HeadersInit) => (body: object | string| number) => Promise<HttpResponse<T>>
+ * @returns {function} Curries Async update.
+ *  (path:string) => (headers:HeadersInit) => (body: object | string| number) => Promise<HttpResponse<T>>
  */
 export function curriedUpdate<T>(api: HttpRequest = fetch) {
     return (path: string) => (
@@ -116,7 +154,7 @@ export function curriedUpdate<T>(api: HttpRequest = fetch) {
         },
     ) => (body: object | string | number): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: 'put', headers: headers, body: JSON.stringify(body) };
-        return httpFull<T>(new Request(path, args), api);
+        return http<T>(api, new Request(path, args));
     };
 }
 
@@ -129,8 +167,11 @@ export enum CreateMethod {
     PUT = 'put',
     POST = 'post',
 }
+
 /**
- *  Configurable HTTP Create with Put and Post methods with injectable Request API. Default set for api and headers.
+ * Configurable HTTP Create with Put and Post methods with injectable Request API. Default set for api and headers.
+ * Entity body is conditional on presence of proper response status code and content-type
+ * header.
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
@@ -152,9 +193,20 @@ export async function create<T>(
     body: object | string | number,
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: method, headers: headers, body: JSON.stringify(body) };
-    return await httpFull<T>(new Request(path, args), api);
+    return await http<T>(api, new Request(path, args));
 }
 
+/**
+ * Curried configurable HTTP Create with Put and Post methods with injectable Request API. Default set
+ * for api and headers. Entity body is conditional on presence of proper response status code and
+ * content-type header.
+ * @export
+ * @template T
+ * @param {HttpRequest} [api=fetch]
+ * i=fetch]
+ * @returns {function} Curries async create.  (method:CreateMethod) =>
+ *  (path:string) => (headers:HeadersInit) => (body: object | string| number) => Promise<HttpResponse<T>>
+ */
 export function curriedCreate<T>(api: HttpRequest = fetch) {
     return (method: CreateMethod) => (path: string) => (
         headers: HeadersInit = {
@@ -162,7 +214,7 @@ export function curriedCreate<T>(api: HttpRequest = fetch) {
         },
     ) => (body: object | string | number): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: method, headers: headers, body: JSON.stringify(body) };
-        return httpFull<T>(new Request(path, args), api);
+        return http<T>(api, new Request(path, args));
     };
 }
 /**
@@ -179,7 +231,7 @@ export async function del<T>(
     path: string,
     args: RequestInit = { method: 'delete' },
 ): Promise<HttpResponse<T>> {
-    return await httpFull<T>(new Request(path, args), api);
+    return await http<T>(api, new Request(path, args));
 }
 
 /**
@@ -191,7 +243,7 @@ export async function del<T>(
  */
 export function curriedDel<T>(api: HttpRequest = fetch) {
     return (path: string) => (args: RequestInit = { method: 'delete' }): Promise<HttpResponse<T>> => {
-        return httpFull<T>(new Request(path, args), api);
+        return http<T>(api, new Request(path, args));
     };
 }
 

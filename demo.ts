@@ -1,6 +1,6 @@
-import { read, curriedRead, HttpRequest, HttpResponse } from './lib/index';
+import { read, curriedRead, curriedHttp, HttpRequest, HttpResponse } from './lib/index';
 import { curry, compose } from 'ramda';
-import fetch, { Request, RequestInfo } from 'node-fetch';
+import fetch, { Request, RequestInit, HeadersInit } from 'node-fetch';
 
 const { log } = console;
 
@@ -56,7 +56,7 @@ const curryGet = curry(testGet);
 const curryPage = curry(pageTodos);
 const curryFilter = curry(filterTodos);
 
-const dataComposed = compose(
+const dataComposed1 = compose(
     logTodos,
     curryFilter((todo) => todo.completed),
     curryPage(0)(4),
@@ -64,9 +64,29 @@ const dataComposed = compose(
     curryGet(fetch),
 );
 
-dataComposed('https://jsonplaceholder.typicode.com/todos');
-curryGet(fetch)('https://jsonplaceholder.typicode.com/todos').then((resp) => {
+dataComposed1('https://jsonplaceholder.typicode.com/todos');
+
+const currRead = curriedRead<Todo[]>(fetch)('https://jsonplaceholder.typicode.com/todos');
+
+const dataComposed2 = compose(
+    logTodos,
+    curryFilter((todo) => todo.completed),
+    curryPage(0)(4),
+    parseBody,
+);
+dataComposed2(currRead());
+curriedRead<Todo[]>(fetch)('https://jsonplaceholder.typicode.com/todos')().then((resp) => {
+    log('curriedRead Done with status', resp.status);
+});
+
+const headers: HeadersInit = {
+    'Content-Type': 'text/html; charset=utf-8',
+};
+const args: RequestInit = { method: 'head', headers: headers };
+const req: Request = new Request('https://twitter.com/', args);
+
+curriedHttp<Todo[]>(fetch)(req).then((resp) => {
     const finish = Date.now();
     const delay = finish - start;
-    log(`Got status code of ${resp.status} with delay ${delay} ms`);
+    log(`curriedHttp Done with status ${resp.status} with delay ${delay} ms`);
 });
