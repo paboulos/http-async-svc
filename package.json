@@ -1,6 +1,6 @@
 {
     "name": "http-crud",
-    "version": "3.0.0",
+    "version": "3.0.1",
     "description": "A module that Node apps can use to easily make asynchronous network requests with TypesScript or JavaScript.",
     "keywords": [
         "fetch",
