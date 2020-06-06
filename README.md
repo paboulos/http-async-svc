@@ -29,7 +29,7 @@ The APIs in this module require familiarity with generic Promises, fetch and HTT
 
 ## Installation
 
-Current stable release (`1.x`)
+Current stable release (`3.x`)
 
 ```sh
 $ npm install http-crud --save
