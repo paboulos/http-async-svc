@@ -23,6 +23,7 @@ const {
     curriedHead,
     http,
     curriedHttp,
+    FetchRequest,
 } = apis;
 
 beforeEach(() => {
@@ -43,7 +44,7 @@ describe('HTTP Request Test Suite', () => {
     it('Should run HTTP Get and return OK', () => {
         const response = JSON.stringify({ hello: 'world' });
         const myMock = fetchMock.sandbox().mock({ url: '/home', method: 'get' }, response);
-        const request = new Request('/home', { method: 'GET' });
+        const request = new FetchRequest('/home', { method: 'GET' });
         return expect(
             http(myMock, request).then((resp) => {
                 //console.log(resp);
@@ -53,7 +54,7 @@ describe('HTTP Request Test Suite', () => {
     });
     it('Should run Curried HTTP Get and return OK', () => {
         const myMock = fetchMock.sandbox().mock({ url: '/home', method: 'GET' }, 200);
-        const request = new Request('/home', { method: 'GET' });
+        const request = new FetchRequest('/home', { method: 'GET' });
         return expect(
             curriedHttp(myMock)(request).then((resp) => {
                 return resp.status;
@@ -306,7 +307,7 @@ describe('HTTP Request Test Suite', () => {
             { status: 204 },
         );
         return expect(
-            curriedDel(myMock)('/hello/name/1')().then((resp) => {
+            curriedDel(myMock)('/hello/name/1')()().then((resp) => {
                 return resp.status === 204 && resp.parsedBody === undefined;
             }),
         ).to.eventually.become(true);
@@ -320,9 +321,41 @@ describe('HTTP Request Test Suite', () => {
             { status: 202, body: { result: 'pending', expiration: 1800 } },
         );
         return expect(
-            curriedDel(myMock)('/hello/name/1')().then(
+            curriedDel(myMock)('/hello/name/1')()().then(
                 (resp) => resp.parsedBody.result === 'pending' && resp.parsedBody.expiration === 1800,
             ),
+        ).to.eventually.become(true);
+    });
+    it('Should run Delete default request with no headers or body ', () => {
+        const myMock = fetchMock.sandbox().mock(
+            {
+                url: '/hello/name/1',
+                method: 'delete',
+                body: {},
+                headers: {},
+            },
+            200,
+        );
+        return expect(
+            del(myMock, '/hello/name/1').then((resp) => {
+                return resp.status === 200;
+            }),
+        ).to.eventually.become(true);
+    });
+    it('Should run Curried Delete default request with no headers or body ', () => {
+        const myMock = fetchMock.sandbox().mock(
+            {
+                url: '/hello/name/1',
+                method: 'delete',
+                body: {},
+                headers: {},
+            },
+            200,
+        );
+        return expect(
+            curriedDel(myMock)('/hello/name/1')()().then((resp) => {
+                return resp.status === 200;
+            }),
         ).to.eventually.become(true);
     });
     after(() => fetchMock.restore());

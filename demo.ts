@@ -1,6 +1,15 @@
-import { read, curriedRead, curriedHttp, HttpRequest, HttpResponse } from './lib/index';
+import {
+    read,
+    curriedRead,
+    curriedHttp,
+    HttpRequest,
+    HeaderInit,
+    RequestData,
+    HttpResponse,
+    FetchRequest,
+} from './lib/index';
 import { curry, compose } from 'ramda';
-import fetch, { Request, RequestInit, HeadersInit } from 'node-fetch';
+import fetch from 'node-fetch';
 
 const { log } = console;
 
@@ -13,7 +22,9 @@ interface Todo {
 }
 
 function testGet(api: HttpRequest, path: string): Promise<HttpResponse<Todo[]>> {
-    return read<Todo[]>(api, path);
+    return read<Todo[]>(api, path, {
+        'Content-Type': 'application/json',
+    });
 }
 /**
  * Get JSON data from api and casts it before returning
@@ -79,11 +90,11 @@ curriedRead<Todo[]>(fetch)('https://jsonplaceholder.typicode.com/todos')().then(
     log('curriedRead Done with status', resp.status);
 });
 
-const headers: HeadersInit = {
+const headers: HeaderInit = {
     'Content-Type': 'text/html; charset=utf-8',
 };
-const args: RequestInit = { method: 'head', headers: headers };
-const req: Request = new Request('https://twitter.com/', args);
+const args: RequestData = { method: 'head', headers: headers };
+const req: FetchRequest = new FetchRequest('https://twitter.com/', args);
 
 curriedHttp<Todo[]>(fetch)(req).then((resp) => {
     const finish = Date.now();

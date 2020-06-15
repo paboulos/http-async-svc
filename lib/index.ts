@@ -1,4 +1,26 @@
-import fetch, { Request, RequestInfo, HeadersInit, RequestInit, Response } from 'node-fetch';
+import fetch, { Request, HeadersInit, RequestInit, Response } from 'node-fetch';
+
+export type HttpRequest = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
+
+export interface URLLike {
+    href: string;
+}
+
+export type RequestInfo = string | URLLike | Request;
+
+export interface HttpResponse<T> extends Response {
+    parsedBody?: T;
+}
+
+export type HeaderInit = HeadersInit;
+export type RequestData = RequestInit;
+
+export class FetchRequest {
+    readonly request: Request;
+    constructor(input: RequestInfo, init?: RequestInit) {
+        this.request = new Request(input, init);
+    }
+}
 
 /**
  * Configurable Generic Async HTTP Request API using fetch. Response containing headers and body if
@@ -6,13 +28,13 @@ import fetch, { Request, RequestInfo, HeadersInit, RequestInit, Response } from 
  * content-type header.
  * @template T
  * @param {HttpRequest} api
- * @param {Request} request
+ * @param {FetchRequest} request
  * @returns {Promise<HttpResponse<T>>}
  */
-export async function http<T>(api: HttpRequest = fetch, request: Request): Promise<HttpResponse<T>> {
-    const resp: HttpResponse<T> = await api(request);
+export async function http<T>(api: HttpRequest = fetch, request: FetchRequest): Promise<HttpResponse<T>> {
+    const resp: HttpResponse<T> = await api(request.request);
     if (resp.ok) {
-        if (request.method.toLowerCase() !== 'head') {
+        if (request.request.method.toLowerCase() !== 'head') {
             try {
                 const contentType = resp.headers.get('content-type') as string;
                 if (resp.status !== 204 && contentType) resp.parsedBody = await resp.json();
@@ -31,10 +53,10 @@ export async function http<T>(api: HttpRequest = fetch, request: Request): Promi
  * @template T
  * @param {HttpRequest} api
  * @returns {function} Curries async HTTP request.
- * (request:Request) => (api:HttpRequest) => Promise<HttpResponse<T>>
+ * (request:FetchRequest) => (api:HttpRequest) => Promise<HttpResponse<T>>
  */
 export function curriedHttp<T>(api: HttpRequest = fetch) {
-    return (request: Request): Promise<HttpResponse<T>> => {
+    return (request: FetchRequest): Promise<HttpResponse<T>> => {
         return http<T>(api, request);
     };
 }
@@ -46,7 +68,7 @@ export function curriedHttp<T>(api: HttpRequest = fetch) {
  * @template T
  * @param {HttpRequest} [api=fetch]
  * @param {string} path
- * @param {HeadersInit} [headers={
+ * @param {HeaderInit} [headers={
  *         'Content-Type': 'application/json',
  *     }]
  * @returns {Promise<HttpResponse<T>>}
@@ -54,12 +76,12 @@ export function curriedHttp<T>(api: HttpRequest = fetch) {
 export async function read<T>(
     api: HttpRequest = fetch,
     path: string,
-    headers: HeadersInit = {
+    headers: HeaderInit = {
         'Content-Type': 'application/json',
     },
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: 'get', headers: headers };
-    return await http<T>(api, new Request(path, args));
+    return await http<T>(api, new FetchRequest(path, args));
 }
 
 /**
@@ -68,16 +90,16 @@ export async function read<T>(
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
- * @returns {function} Curries Async read. (path:string) => (headers:HeadersInit) => Promise<HttpResponse<T>>
+ * @returns {function} Curries Async read. (path:string) => (headers:HeaderInit) => Promise<HttpResponse<T>>
  */
 export function curriedRead<T>(api: HttpRequest = fetch) {
     return (path: string) => (
-        headers: HeadersInit = {
+        headers: HeaderInit = {
             'Content-Type': 'application/json',
         },
     ): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: 'get', headers: headers };
-        return http<T>(api, new Request(path, args));
+        return http<T>(api, new FetchRequest(path, args));
     };
 }
 
@@ -87,7 +109,7 @@ export function curriedRead<T>(api: HttpRequest = fetch) {
  * @template T
  * @param {HttpRequest} [api=fetch]
  * @param {string} path
- * @param {HeadersInit} [headers={
+ * @param {HeaderInit} [headers={
  *         'Content-Type': 'application/json',
  *     }]
  * @returns {Promise<HttpResponse<T>>}
@@ -100,17 +122,25 @@ export async function head<T>(
     },
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: 'head', headers: headers };
-    return await http<T>(api, new Request(path, args));
+    return await http<T>(api, new FetchRequest(path, args));
 }
 
+/**
+ * Curried Head is configurable HTTP request using HEAD method. Default set for api and headers.
+ * @export
+ * @template T
+ * @param {HttpRequest} [api=fetch]
+ * @returns
+ *  (path:string) => (headers:HeadersInit) => Promise<HttpResponse<T>>
+ */
 export function curriedHead<T>(api: HttpRequest = fetch) {
     return (path: string) => (
-        headers: HeadersInit = {
+        headers: HeaderInit = {
             'Content-Type': 'application/json',
         },
     ): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: 'head', headers: headers };
-        return http<T>(api, new Request(path, args));
+        return http<T>(api, new FetchRequest(path, args));
     };
 }
 /**
@@ -121,7 +151,7 @@ export function curriedHead<T>(api: HttpRequest = fetch) {
  * @template T
  * @param {HttpRequest} [api=fetch]
  * @param {string} path
- * @param {HeadersInit} [headers={
+ * @param {HeaderInit} [headers={
  *         'Content-Type': 'application/json',
  *     }]
  * @param {(object | string | number)} body
@@ -136,7 +166,7 @@ export async function update<T>(
     body: object | string | number,
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: 'put', headers: headers, body: JSON.stringify(body) };
-    return await http<T>(api, new Request(path, args));
+    return await http<T>(api, new FetchRequest(path, args));
 }
 
 /**
@@ -145,7 +175,7 @@ export async function update<T>(
  * @template T
  * @param {HttpRequest} [api=fetch]
  * @returns {function} Curries Async update.
- *  (path:string) => (headers:HeadersInit) => (body: object | string| number) => Promise<HttpResponse<T>>
+ *  (path:string) => (headers:HeaderInit) => (body: object | string| number) => Promise<HttpResponse<T>>
  */
 export function curriedUpdate<T>(api: HttpRequest = fetch) {
     return (path: string) => (
@@ -154,7 +184,7 @@ export function curriedUpdate<T>(api: HttpRequest = fetch) {
         },
     ) => (body: object | string | number): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: 'put', headers: headers, body: JSON.stringify(body) };
-        return http<T>(api, new Request(path, args));
+        return http<T>(api, new FetchRequest(path, args));
     };
 }
 
@@ -177,7 +207,7 @@ export enum CreateMethod {
  * @param {HttpRequest} [api=fetch]
  * @param {CreateMethod} method
  * @param {string} path
- * @param {HeadersInit} [headers={
+ * @param {HeaderInit} [headers={
  *         'Content-Type': 'application/json',
  *     }]
  * @param {(object | string | number)} body
@@ -187,13 +217,13 @@ export async function create<T>(
     api: HttpRequest = fetch,
     method: CreateMethod,
     path: string,
-    headers: HeadersInit = {
+    headers: HeaderInit = {
         'Content-Type': 'application/json',
     },
     body: object | string | number,
 ): Promise<HttpResponse<T>> {
     const args: RequestInit = { method: method, headers: headers, body: JSON.stringify(body) };
-    return await http<T>(api, new Request(path, args));
+    return await http<T>(api, new FetchRequest(path, args));
 }
 
 /**
@@ -205,7 +235,7 @@ export async function create<T>(
  * @param {HttpRequest} [api=fetch]
  * i=fetch]
  * @returns {function} Curries async create.  (method:CreateMethod) =>
- *  (path:string) => (headers:HeadersInit) => (body: object | string| number) => Promise<HttpResponse<T>>
+ *  (path:string) => (headers:HeaderInit) => (body: object | string| number) => Promise<HttpResponse<T>>
  */
 export function curriedCreate<T>(api: HttpRequest = fetch) {
     return (method: CreateMethod) => (path: string) => (
@@ -214,7 +244,7 @@ export function curriedCreate<T>(api: HttpRequest = fetch) {
         },
     ) => (body: object | string | number): Promise<HttpResponse<T>> => {
         const args: RequestInit = { method: method, headers: headers, body: JSON.stringify(body) };
-        return http<T>(api, new Request(path, args));
+        return http<T>(api, new FetchRequest(path, args));
     };
 }
 /**
@@ -223,15 +253,18 @@ export function curriedCreate<T>(api: HttpRequest = fetch) {
  * @template T
  * @param {HttpRequest} [api=fetch]
  * @param {string} path
- * @param {RequestInit} [args={ method: 'delete' }]
+ * @param {HeaderInit} [headers={}]
+ * @param {(object | string | number)} [body={}]
  * @returns {Promise<HttpResponse<T>>}
  */
 export async function del<T>(
     api: HttpRequest = fetch,
     path: string,
-    args: RequestInit = { method: 'delete' },
+    headers: HeaderInit = {},
+    body: object | string | number = {},
 ): Promise<HttpResponse<T>> {
-    return await http<T>(api, new Request(path, args));
+    const args: RequestInit = { method: 'delete', headers: headers, body: JSON.stringify(body) };
+    return await http<T>(api, new FetchRequest(path, args));
 }
 
 /**
@@ -239,16 +272,14 @@ export async function del<T>(
  * @export
  * @template T
  * @param {HttpRequest} [api=fetch]
- * @returns {function} Curries Async delete. (path:string) => (args:RequestInit) => Promise<HttpResponse<T>>
+ * @returns {function} Curries Async delete.
+ * (api:HttpRequest) => (path:string) => (headers:HeaderInit) => (body: object|string|number) => Promise<HttpResponse<T>>
  */
 export function curriedDel<T>(api: HttpRequest = fetch) {
-    return (path: string) => (args: RequestInit = { method: 'delete' }): Promise<HttpResponse<T>> => {
-        return http<T>(api, new Request(path, args));
+    return (path: string) => (headers: HeaderInit = {}) => (
+        body: object | string | number = {},
+    ): Promise<HttpResponse<T>> => {
+        const args: RequestInit = { method: 'delete', headers: headers, body: JSON.stringify(body) };
+        return http<T>(api, new FetchRequest(path, args));
     };
-}
-
-export type HttpRequest = (url: RequestInfo, init?: RequestInit) => Promise<Response>;
-
-export interface HttpResponse<T> extends Response {
-    parsedBody?: T;
 }

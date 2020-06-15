@@ -23,13 +23,13 @@ The APIs in this module require familiarity with generic Promises, fetch and HTT
 8. curriedDel
 9. head
 10. curriedHead
-12. http
-13. curriedHttp
+11. http
+12. curriedHttp
 ```
 
 ## Installation
 
-Current stable release (`3.x`)
+Current stable release (`4.x`)
 
 ```sh
 $ npm install http-crud --save
@@ -40,14 +40,13 @@ $ npm install http-crud --save
 **TypeScript**
 
 ```ts
-import { HttpResponse, read, curriedHttp } from 'http-crud';
-import { Request, RequestInit, HeadersInit } from 'node-fetch';
+import { HttpResponse, read, curriedHttp, FetchRequest, RequestData, HeaderInit } from 'http-crud';
 
-const headers: HeadersInit = {
+const headers: HeaderInit = {
     'Content-Type': 'application/json',
 };
-const args: RequestInit = { method: 'head', headers: headers };
-const req: Request = new Request('https://api.spacexdata.com/v3/launches/latest', args);
+const args: RequestData = { method: 'head', headers: headers };
+const req: Request = new FetchRequest('https://api.spacexdata.com/v3/launches/latest', args);
 
 curriedHttp<ILaunch>()(req).then((resp) => {
     const finish = Date.now();
@@ -198,7 +197,7 @@ read(undefined, 'https://jsonplaceholder.typicode.com/todos').then((resp) => {
 **Success 2xx, 3xx**
 
 -   `OK` 200
--   `CREATED` 201
+-   `Created` 201
 -   `Accepted` 202
 -   `No Content` 204
 -   `Partial Content` 206
@@ -274,3 +273,18 @@ that a transaction can use.**
 |     ETag      | The entity tag associated with the entity.                                                                          |
 |    Expires    | The date and time at which this entity will no longer be valid and will need to be fetched from the original source |
 | Last-Modified | The last date and time when this entity changed                                                                     |
+
+## How to use Header and Request Parameters for the REST API
+
+-   Parameters that stay the same on all endpoints are better suited for headers. For example,\
+    authentication tokens get sent on every request.
+
+-   Parameters that are highly dynamic, especially when they’re only valid for a few endpoints,\
+    should go in the query string. For example filter parameters are different for every endpoint.
+-   the main use-case of the query string is filtering and specifically two special cases of\
+    filtering: searching and pagination. ex. GET /items?limit=20
+-   The query string is part of our URL, and our URL can be read by everyone sitting between the\
+    clients and the API, so we shouldn’t put sensitive data like passwords into the query string.
+-   Some dynamic requests can become unwieldly and difficult to debug. These require more design\
+    effort. One approach is to first use a POST or PUT request to a special endpoint. This creates\
+    an extension to the endpoint that is configured for GET to do queries on the returned uri.
